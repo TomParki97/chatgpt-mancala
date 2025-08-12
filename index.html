@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mancala</title>
+  <link rel="stylesheet" href="styles/styles.css" />
+</head>
+<body>
+  <!-- Home Screen -->
+  <section id="home-screen" class="screen active" aria-labelledby="home-title">
+    <h1 id="home-title">Mancala</h1>
+    <div class="players">
+      <label>Player 1 Name
+        <input id="p1-name" type="text" value="Player 1" />
+      </label>
+      <label>Player 2 Name
+        <input id="p2-name" type="text" value="Player 2" />
+      </label>
+    </div>
+    <div class="settings">
+      <label>Seeds per pit
+        <select id="seed-count">
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+        </select>
+      </label>
+      <label>First player
+        <select id="first-player">
+          <option value="0">Player 1</option>
+          <option value="1">Player 2</option>
+          <option value="rand">Random</option>
+        </select>
+      </label>
+    </div>
+    <button id="start-btn" class="primary">Play Local 1v1</button>
+  </section>
+
+  <!-- Game Screen -->
+  <section id="game-screen" class="screen" hidden>
+    <header class="top-bar">
+      <div id="turn-banner" aria-live="polite"></div>
+      <div class="toolbar">
+        <button id="restart-btn" title="Restart game">↻</button>
+        <button id="home-btn" title="Home">⌂</button>
+        <button id="theme-toggle" title="Toggle theme">☾</button>
+        <button id="sound-toggle" title="Toggle sound">🔈</button>
+      </div>
+    </header>
+    <div id="board-container"></div>
+  </section>
+
+  <!-- End Screen -->
+  <section id="end-screen" class="screen" hidden>
+    <h2 id="end-title"></h2>
+    <p id="end-scores"></p>
+    <button id="play-again-btn" class="primary">Play again</button>
+    <button id="end-home-btn">Home</button>
+  </section>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
