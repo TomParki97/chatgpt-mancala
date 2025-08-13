@@ -24,8 +24,10 @@ export function getLegalMoves(state) {
 
 export function applyMove(state, pitIndex) {
   if (!getLegalMoves(state).includes(pitIndex)) throw new Error('Illegal move');
-  const st = deepClone(state);
-  st.history.push(deepClone(state));
+  const snapshot = {...state, history: []};
+  const st = deepClone(snapshot);
+  st.history = deepClone(state.history);
+  st.history.push(deepClone(snapshot));
   let stones = st.pits[pitIndex];
   st.pits[pitIndex] = 0;
   let idx = pitIndex;
