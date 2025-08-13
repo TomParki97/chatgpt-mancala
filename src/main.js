@@ -20,9 +20,11 @@ const p1Input = document.getElementById('p1-name');
 const p2Input = document.getElementById('p2-name');
 const seedSelect = document.getElementById('seed-count');
 const firstSelect = document.getElementById('first-player');
+const speedSelect = document.getElementById('anim-speed');
 p1Input.value = settings.p1Name; p2Input.value = settings.p2Name;
 seedSelect.value = settings.seedsPerPit;
 firstSelect.value = settings.firstPlayer;
+speedSelect.value = settings.animSpeed;
 
 let gameState = null; let inputLocked = false;
 
@@ -31,6 +33,7 @@ function startGame() {
   settings.p2Name = p2Input.value || 'Player 2';
   settings.seedsPerPit = parseInt(seedSelect.value,10);
   settings.firstPlayer = firstSelect.value;
+  settings.animSpeed = speedSelect.value;
   saveSettings(settings);
   let first = settings.firstPlayer;
   if (first === 'rand') first = Math.random() < 0.5 ? 0 : 1;
@@ -55,9 +58,8 @@ function handlePit(pitIndex) {
   if (inputLocked) return;
   const result = applyMove(gameState, pitIndex);
   inputLocked = true;
-  animateSow(gameState, pitIndex, result.summary).then(()=>{
+  animateSow(gameState, pitIndex, result.summary, result.state, settings.animSpeed).then(()=>{
     gameState = result.state;
-    updateBoard(gameState);
     inputLocked = false;
     if (result.summary.capture) play('capture');
     if (result.summary.extraTurn) play('extra');
@@ -97,4 +99,16 @@ document.getElementById('sound-toggle').addEventListener('click', ()=>{
   saveSettings(settings);
 });
 
-registerShortcuts({restart:startGame, mute:()=>{settings.sound=toggleSound();saveSettings(settings);}});
+function cycleAnimSpeed() {
+  const order = ['normal', 'fast', 'instant'];
+  const idx = order.indexOf(settings.animSpeed);
+  settings.animSpeed = order[(idx + 1) % order.length];
+  speedSelect.value = settings.animSpeed;
+  saveSettings(settings);
+}
+
+registerShortcuts({
+  restart: startGame,
+  mute: ()=>{settings.sound=toggleSound();saveSettings(settings);},
+  cycleSpeed: () => { if (!gameScreen.hidden) cycleAnimSpeed(); }
+});

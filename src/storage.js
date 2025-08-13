@@ -6,7 +6,8 @@ const DEFAULTS = {
   seedsPerPit: 4,
   firstPlayer: 0,
   theme: 'light',
-  sound: true
+  sound: true,
+  animSpeed: 'normal'
 };
 
 export function loadSettings() {
