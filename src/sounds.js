@@ -1,8 +1,12 @@
-const sfx = {
-  move: new Audio('assets/sfx/move.mp3'),
-  capture: new Audio('assets/sfx/capture.mp3'),
-  extra: new Audio('assets/sfx/extra_turn.mp3'),
-  end: new Audio('assets/sfx/end.mp3')
+const ctx = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)
+  ? new (window.AudioContext || window.webkitAudioContext)()
+  : null;
+
+const tones = {
+  move: 440,
+  capture: 494,
+  extra: 523,
+  end: 330
 };
 
 let enabled = true;
@@ -19,12 +23,20 @@ export function toggleEnabled() {
 }
 
 export function play(name) {
-  if (!enabled) return;
-  const a = sfx[name];
-  if (!a) return;
+  if (!enabled || !ctx) return;
+  const freq = tones[name];
+  if (!freq) return;
   const now = performance.now ? performance.now() : Date.now();
   if (lastPlay[name] && now - lastPlay[name] < COOLDOWN) return;
   lastPlay[name] = now;
-  a.currentTime = 0;
-  a.play();
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.1, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + 0.21);
 }
