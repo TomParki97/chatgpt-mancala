@@ -5,5 +5,6 @@ export function registerShortcuts(actions) {
     if (key === 'h') actions.help?.();
     if (key === 's') actions.settings?.();
     if (key === 'm') actions.mute?.();
+    if (key === 'f') actions.cycleSpeed?.();
   });
 }

@@ -2,7 +2,23 @@ import {getLegalMoves} from './engine.js';
 import {play} from './sounds.js';
 
 const svgNS = 'http://www.w3.org/2000/svg';
+const ENABLE_PERF_LOG = false;
 let pitElements = [];
+let pitTexts = [];
+let currentFrame = null;
+let currentAnimId = 0;
+
+function stopAnimFrame() {
+  if (currentFrame !== null) {
+    cancelAnimationFrame(currentFrame);
+    currentFrame = null;
+  }
+}
+
+export function cancelAnim() {
+  stopAnimFrame();
+  currentAnimId++;
+}
 
 export function initBoard(container, state, onPitSelect) {
   container.innerHTML = '';
@@ -16,9 +32,11 @@ export function initBoard(container, state, onPitSelect) {
     {x:15,y:50,store:true}
   ];
   pitElements = [];
+  pitTexts = [];
   pos.forEach((p, i) => {
     const g = document.createElementNS(svgNS, 'g');
     g.dataset.index = i;
+    g.dataset.pit = p.store ? '' : '1';
     if (p.store) {
       const rect = document.createElementNS(svgNS, 'rect');
       rect.setAttribute('x', p.x-15); rect.setAttribute('y', 15); rect.setAttribute('width',30); rect.setAttribute('height',70); rect.setAttribute('rx',15); rect.setAttribute('ry',15);
@@ -37,6 +55,7 @@ export function initBoard(container, state, onPitSelect) {
     g.appendChild(t);
     svg.appendChild(g);
     pitElements[i] = g;
+    pitTexts[i] = t;
   });
   container.appendChild(svg);
   updateBoard(state);
@@ -45,30 +64,83 @@ export function initBoard(container, state, onPitSelect) {
 export function updateBoard(state) {
   const legal = getLegalMoves(state);
   pitElements.forEach((g,i)=>{
-    const t = g.querySelector('text');
-    t.textContent = state.pits[i];
-    if (g.querySelector('circle')) {
+    const t = pitTexts[i];
+    const val = state.pits[i];
+    if (t.textContent !== String(val)) t.textContent = val;
+    if (g.dataset.pit) {
       const isLegal = legal.includes(i);
-      g.dataset.legal = isLegal;
-      g.setAttribute('aria-disabled', !isLegal);
+      if (g.dataset.legal !== String(isLegal)) {
+        g.dataset.legal = isLegal;
+        g.setAttribute('aria-disabled', !isLegal);
+      }
     }
   });
 }
 
-export function animateSow(prevState, pitIndex, summary, speed=200) {
+function computeTotalDuration(len, speed) {
+  if (speed === 'instant') return 0;
+  const per = speed === 'fast' ? 25 : 50;
+  const min = speed === 'fast' ? 250 : 450;
+  const max = speed === 'fast' ? 450 : 800;
+  return Math.min(max, Math.max(min, per * len));
+}
+
+export function animateSow(prevState, pitIndex, summary, resultingState, speed='normal') {
+  cancelAnim();
+  const animId = currentAnimId;
+  const len = summary.sowOrder.length;
+  const totalDuration = computeTotalDuration(len, speed);
+
+  if (totalDuration === 0) {
+    updateBoard(resultingState);
+    return Promise.resolve();
+  }
+
+  const perDrop = totalDuration / Math.max(len, 1);
+  const counts = [...prevState.pits];
+  counts[pitIndex] = 0;
+  pitTexts[pitIndex].textContent = 0;
+
+  let dropIndex = 0;
+  let nextDrop = perDrop;
+  const start = performance.now();
+
   return new Promise(resolve => {
-    const counts = [...prevState.pits];
-    counts[pitIndex]=0;
-    const startText = pitElements[pitIndex].querySelector('text');
-    startText.textContent = 0;
-    summary.sowOrder.forEach((idx, i) => {
-      setTimeout(() => {
+    function step(now) {
+      if (animId !== currentAnimId) return resolve();
+      const elapsed = now - start;
+      while (dropIndex < len && elapsed >= nextDrop) {
+        const idx = summary.sowOrder[dropIndex];
         counts[idx]++;
-        pitElements[idx].querySelector('text').textContent = counts[idx];
-        play('move');
-      }, speed * (i+1));
-    });
-    const totalTime = speed * summary.sowOrder.length + 50;
-    setTimeout(()=> resolve(), totalTime);
+        pitTexts[idx].textContent = counts[idx];
+        if (dropIndex % 3 === 0) play('move');
+        dropIndex++;
+        nextDrop += perDrop;
+      }
+      if (dropIndex < len && elapsed < totalDuration) {
+        currentFrame = requestAnimationFrame(step);
+      } else {
+        stopAnimFrame();
+        updateBoard(resultingState);
+        if (ENABLE_PERF_LOG) {
+          const actual = performance.now() - start;
+          console.log('animateSow', {len, totalDuration, actual});
+        }
+        resolve();
+      }
+    }
+    currentFrame = requestAnimationFrame(step);
   });
+}
+
+export function debugAnimate(length = 50, speed='normal') {
+  if (pitTexts.length === 0) {
+    pitTexts = Array.from({length:14}, () => ({textContent:'0'}));
+    pitElements = pitTexts.map(() => ({dataset:{pit:'1'}, setAttribute(){}}));
+  }
+  const prev = {pits:Array(14).fill(0), currentPlayer:0};
+  const sowOrder = Array.from({length}, (_,i)=> i%14);
+  const result = {pits:[...prev.pits], currentPlayer:0};
+  sowOrder.forEach(idx => result.pits[idx]++);
+  return animateSow(prev, 0, {sowOrder}, result, speed);
 }

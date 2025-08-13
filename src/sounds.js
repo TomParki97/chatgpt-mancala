@@ -6,6 +6,8 @@ const sfx = {
 };
 
 let enabled = true;
+const lastPlay = {};
+const COOLDOWN = 60; // ms
 
 export function setEnabled(val) {
   enabled = val;
@@ -20,6 +22,9 @@ export function play(name) {
   if (!enabled) return;
   const a = sfx[name];
   if (!a) return;
+  const now = performance.now ? performance.now() : Date.now();
+  if (lastPlay[name] && now - lastPlay[name] < COOLDOWN) return;
+  lastPlay[name] = now;
   a.currentTime = 0;
   a.play();
 }
